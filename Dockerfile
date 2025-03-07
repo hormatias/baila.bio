@@ -10,11 +10,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Clean install dependencies
-RUN npm cache clean --force && \
-    npm config set registry https://registry.npmjs.org/ && \
-    npm config set fetch-retry-maxtimeout 600000 && \
-    npm ci --prefer-offline --no-audit
+# Install dependencies with clean npm install
+RUN npm install --production --force
 
 # Copy source code
 COPY . .
@@ -32,10 +29,13 @@ COPY --from=builder /app/next.config.js ./
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
 
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3002
+ENV HOST=0.0.0.0
 
 # Expose the port
 EXPOSE 3002
