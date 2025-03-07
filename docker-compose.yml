@@ -4,7 +4,6 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - BUILDKIT_INLINE_CACHE=0
         - NODE_ENV=production
         - NPM_CONFIG_LOGLEVEL=verbose
       no_cache: true
