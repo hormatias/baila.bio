@@ -1,17 +1,15 @@
+version: '3'
+
 services:
   nextjs-app:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        - NODE_ENV=production
-        - NPM_CONFIG_LOGLEVEL=verbose
-      no_cache: true
     ports:
       - "3002:3002"
     environment:
       - NODE_ENV=production
-      - HOST=0.0.0.0
+      - HOSTNAME=0.0.0.0
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://0.0.0.0:3002"]
