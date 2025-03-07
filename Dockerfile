@@ -1,14 +1,17 @@
 # Use Node.js LTS version
 FROM node:20-alpine AS builder
 
+# Install dependencies needed for node-gyp and other build tools
+RUN apk add --no-cache python3 make g++ git
+
 # Set working directory
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies with legacy peer deps flag and increased network timeout
+RUN npm install --legacy-peer-deps --network-timeout 100000
 
 # Copy source code
 COPY . .
