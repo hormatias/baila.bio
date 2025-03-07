@@ -2,7 +2,7 @@
 FROM node:20-alpine AS builder
 
 # Install dependencies needed for node-gyp and other build tools
-RUN apk add --no-cache python3 make g++ git
+RUN apk add --no-cache python3 make g++ git curl
 
 # Set working directory
 WORKDIR /app
@@ -10,8 +10,11 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies with legacy peer deps flag and increased network timeout
-RUN npm install --legacy-peer-deps --network-timeout 100000
+# Clean install dependencies
+RUN npm cache clean --force && \
+    npm config set registry https://registry.npmjs.org/ && \
+    npm config set fetch-retry-maxtimeout 600000 && \
+    npm ci --prefer-offline --no-audit
 
 # Copy source code
 COPY . .
