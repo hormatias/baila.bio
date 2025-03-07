@@ -1,46 +1,29 @@
 # Use Node.js LTS version
-FROM node:18-alpine AS base
+FROM node:18-alpine
 
 # Install dependencies needed for build
-RUN apk add --no-cache libc6-compat python3 make g++ git
+RUN apk add --no-cache libc6-compat
 
 # Set working directory
 WORKDIR /app
 
-# Install dependencies only when needed
-FROM base AS deps
-COPY package.json package-lock.json* ./
-RUN npm config set legacy-peer-deps true && \
-    npm install --no-package-lock
+# Copy package files
+COPY package*.json ./
 
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# Install dependencies
+RUN npm install
+
+# Copy the rest of the application
 COPY . .
 
-# Set environment for build
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV NODE_ENV production
-
+# Build the application
 RUN npm run build
 
-# Production image, copy all the files and run next
-FROM base AS runner
-WORKDIR /app
-
-ENV NODE_ENV production
-ENV PORT 3002
-ENV HOSTNAME "0.0.0.0"
-ENV NEXT_TELEMETRY_DISABLED 1
-
-# Copy necessary files
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3002
+ENV HOSTNAME=0.0.0.0
 
 EXPOSE 3002
 
-CMD ["node", "server.js"] 
+CMD ["npm", "start"] 
