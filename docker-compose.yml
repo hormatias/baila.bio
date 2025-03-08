@@ -1,13 +1,32 @@
 services:
-  nextjs-app:
-    build: .
+  baila-bio:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    image: baila-bio:latest
+    container_name: baila-bio
     ports:
-      - "3002:3002"
+      - "3001:3001"
     environment:
+      - PORT=3001
       - NODE_ENV=production
-    restart: always
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3002 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3 
+    restart: unless-stopped
+    networks:
+      - default
+      - cloudflared
+    volumes:
+      - app-data:/app/data
+    labels:
+      - "com.baila.description=Baila Bio Web Application"
+      - "com.baila.service=web"
+      - "com.baila.engine=nodejs"
+
+networks:
+  default:
+  cloudflared:
+    external: true
+    name: cloudflared
+
+volumes:
+  app-data:
+    driver: local
