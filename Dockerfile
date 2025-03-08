@@ -1,29 +1,51 @@
-# Use Node.js LTS version
-FROM node:18-alpine
+FROM node:18-alpine AS base
 
-# Install dependencies needed for build
-RUN apk add --no-cache libc6-compat
-
-# Set working directory
+# Instalar dependencias necesarias para construir
+FROM base AS deps
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copiar archivos de configuración de dependencias
+COPY package.json package-lock.json* ./
 
-# Install dependencies
-RUN npm install
+# Instalar dependencias
+RUN npm ci
 
-# Copy the rest of the application
+# Configuración de construcción
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build the application
+# Construir la aplicación
 RUN npm run build
 
-# Set environment variables
-ENV NODE_ENV=production
-ENV PORT=3002
-ENV HOSTNAME=0.0.0.0
+# Configuración de producción
+FROM base AS runner
+WORKDIR /app
 
-EXPOSE 3002
+ENV NODE_ENV production
+ENV PORT 3001
 
-CMD ["npm", "start"] 
+# Crear usuario no root para producción
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copiar archivos necesarios
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Crear directorio de datos con permisos correctos (como root)
+RUN mkdir -p /app/data && chown -R nextjs:nodejs /app
+
+# Definir volumen
+VOLUME ["/app/data"]
+
+# Cambiar al usuario no root
+USER nextjs
+
+# Exponer el puerto
+EXPOSE 3001
+
+# Comando para iniciar la aplicación
+CMD ["node", "server.js"] 
