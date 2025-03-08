@@ -10,17 +10,26 @@ RUN apk add --no-cache libc6-compat python3 make g++ git
 # Copiar archivos de configuración de dependencias
 COPY package.json package-lock.json* ./
 
-# Instalar dependencias con mayor límite de memoria
-ENV NODE_OPTIONS="--max-old-space-size=4096"
-RUN npm ci --only=production --legacy-peer-deps
+# Instalar todas las dependencias (incluyendo devDependencies)
+ENV NODE_OPTIONS="--max-old-space-size=8192"
+RUN npm ci
 
 # Configuración de construcción
 FROM base AS builder
 WORKDIR /app
+
+# Copiar dependencias y archivos del proyecto
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Construir la aplicación
+# Eliminar configuraciones duplicadas que pueden causar conflictos
+RUN if [ -f next.config.js ] && [ -f next.config.mjs ]; then rm next.config.js; fi
+
+# Construir la aplicación con mayor límite de memoria
+ENV NODE_OPTIONS="--max-old-space-size=8192"
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Ejecutar build con más verbosidad para ver el error
 RUN npm run build
 
 # Configuración de producción
@@ -29,6 +38,7 @@ WORKDIR /app
 
 ENV NODE_ENV production
 ENV PORT 3001
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Crear usuario no root para producción
 RUN addgroup --system --gid 1001 nodejs
