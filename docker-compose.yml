@@ -3,7 +3,6 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile
-    image: baila-bio:latest
     container_name: baila-bio
     ports:
       - "3001:3001"
