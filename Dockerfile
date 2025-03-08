@@ -7,21 +7,22 @@ WORKDIR /app
 # Instalar dependencias del sistema necesarias para compilación
 RUN apk add --no-cache libc6-compat python3 make g++ git
 
+# Instalar yarn globalmente
+RUN npm install -g yarn
+
 # Copiar archivos de configuración de dependencias
 COPY package.json package-lock.json* ./
 
-# Instalar todas las dependencias con estrategias para evitar fallos
+# Instalar todas las dependencias con yarn
 ENV NODE_OPTIONS="--max-old-space-size=8192"
-# Limpiar caché de npm y usar estrategias para evitar fallos de red
-RUN npm cache clean --force && \
-    npm config set network-timeout 300000 && \
-    npm config set fetch-retry-mintimeout 20000 && \
-    npm config set fetch-retry-maxtimeout 120000 && \
-    npm install --no-fund --no-audit
+RUN yarn install --frozen-lockfile --network-timeout 600000
 
 # Configuración de construcción
 FROM base AS builder
 WORKDIR /app
+
+# Instalar yarn globalmente en esta etapa también
+RUN npm install -g yarn
 
 # Copiar dependencias y archivos del proyecto
 COPY --from=deps /app/node_modules ./node_modules
@@ -34,8 +35,8 @@ RUN if [ -f next.config.js ] && [ -f next.config.mjs ]; then rm next.config.js; 
 ENV NODE_OPTIONS="--max-old-space-size=8192"
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Ejecutar build con más verbosidad para ver el error
-RUN npm run build
+# Ejecutar build con yarn
+RUN yarn build
 
 # Configuración de producción
 FROM base AS runner
