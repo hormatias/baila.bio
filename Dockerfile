@@ -4,6 +4,9 @@ FROM node:18-alpine AS base
 FROM base AS deps
 WORKDIR /app
 
+# Instalar dependencias del sistema necesarias para compilación
+RUN apk add --no-cache libc6-compat python3 make g++
+
 # Copiar archivos de configuración de dependencias
 COPY package.json package-lock.json* ./
 
