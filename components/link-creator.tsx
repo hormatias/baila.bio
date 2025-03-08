@@ -18,6 +18,15 @@ import BlockEditor from "@/components/block-editor"
 import type { Block } from "@/lib/types"
 import { supabase } from "@/lib/supabase"
 
+// Define a type for JSON-compatible values
+type JsonValue = 
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 export default function LinkCreator() {
   const router = useRouter()
   const [title, setTitle] = useState("")
@@ -141,13 +150,13 @@ export default function LinkCreator() {
   }
 
   // Helper function to sanitize content for JSONB
-  const sanitizeContentForJsonb = (content: any) => {
+  const sanitizeContentForJsonb = (content: any): JsonValue => {
     // Convert any undefined values to null
     if (content === undefined) return null
 
     // Handle objects recursively
     if (content && typeof content === "object" && !Array.isArray(content)) {
-      const sanitized: Record<string, any> = {}
+      const sanitized: Record<string, JsonValue> = {}
       for (const key in content) {
         sanitized[key] = sanitizeContentForJsonb(content[key])
       }

@@ -1,14 +1,6 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import { notFound } from "next/navigation"
+import { Metadata } from "next"
 import { supabase } from "@/lib/supabase"
-
-interface LinkPageProps {
-  params: {
-    id: string
-  }
-}
+import { notFound } from "next/navigation"
 
 interface LinkData {
   id: string
@@ -16,50 +8,45 @@ interface LinkData {
   html_content: string
 }
 
-export default function LinkPage({ params }: LinkPageProps) {
-  const [linkData, setLinkData] = useState<LinkData | null>(null)
-  const [loading, setLoading] = useState(true)
+export async function generateMetadata(props: any): Promise<Metadata> {
+  const id = props.params?.id
+  try {
+    const { data } = await supabase
+      .from("links")
+      .select("title")
+      .eq("id", id)
+      .single()
+    return {
+      title: data?.title || "Link"
+    }
+  } catch (error) {
+    return {
+      title: "Link"
+    }
+  }
+}
 
-  useEffect(() => {
-    async function fetchLink() {
-      try {
-        const { data, error } = await supabase.from("links").select("*").eq("id", params.id).single()
+export default async function LinkPage(props: any) {
+  const id = props.params?.id
+  try {
+    const { data: linkData, error } = await supabase
+      .from("links")
+      .select("*")
+      .eq("id", id)
+      .single()
 
-        if (error) {
-          throw error
-        }
-
-        if (data) {
-          setLinkData(data)
-          // Set the page title
-          document.title = data.title
-        }
-      } catch (error) {
-        console.error("Error fetching link:", error)
-        setLinkData(null)
-      } finally {
-        setLoading(false)
-      }
+    if (error || !linkData) {
+      notFound()
     }
 
-    fetchLink()
-  }, [params.id])
-
-  // Show 404 if link not found
-  if (!loading && !linkData) {
+    return (
+      <div 
+        dangerouslySetInnerHTML={{ __html: linkData.html_content }} 
+        className="min-h-screen w-full"
+      />
+    )
+  } catch (error) {
     notFound()
   }
-
-  // Show loading state
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p>Loading...</p>
-      </div>
-    )
-  }
-
-  // Render the HTML content
-  return <div dangerouslySetInnerHTML={{ __html: linkData?.html_content || "" }} className="min-h-screen w-full" />
 }
 
