@@ -5,13 +5,14 @@ FROM base AS deps
 WORKDIR /app
 
 # Instalar dependencias del sistema necesarias para compilación
-RUN apk add --no-cache libc6-compat python3 make g++
+RUN apk add --no-cache libc6-compat python3 make g++ git
 
 # Copiar archivos de configuración de dependencias
 COPY package.json package-lock.json* ./
 
-# Instalar dependencias
-RUN npm install
+# Instalar dependencias con mayor límite de memoria
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+RUN npm ci --only=production
 
 # Configuración de construcción
 FROM base AS builder
@@ -51,4 +52,4 @@ USER nextjs
 EXPOSE 3001
 
 # Comando para iniciar la aplicación
-CMD ["node", "server.js"] 
+CMD ["node", "server.js"]
