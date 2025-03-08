@@ -1,54 +1,33 @@
-FROM node:18 AS base
+FROM node:16 AS builder
 
-# Configuración de construcción
-FROM base AS builder
 WORKDIR /app
 
-# Copiar archivos de configuración de dependencias
-COPY package.json package-lock.json* ./
-
-# Instalar dependencias con un enfoque simple
-ENV NODE_OPTIONS="--max-old-space-size=8192"
-RUN npm install
-
-# Copiar el resto de los archivos
+# Copiar todo el código fuente
 COPY . .
 
-# Eliminar configuraciones duplicadas que pueden causar conflictos
-RUN if [ -f next.config.js ] && [ -f next.config.mjs ]; then rm next.config.js; fi
-
-# Construir la aplicación
-ENV NEXT_TELEMETRY_DISABLED=1
+# Instalar dependencias y construir
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+RUN npm install
 RUN npm run build
 
-# Configuración de producción
-FROM node:18-slim AS runner
-WORKDIR /app
+# Etapa de producción
+FROM node:16-slim
 
+WORKDIR /app
 ENV NODE_ENV production
 ENV PORT 3001
-ENV NEXT_TELEMETRY_DISABLED=1
 
-# Crear usuario no root para producción
-RUN groupadd --gid 1001 nodejs
-RUN useradd --uid 1001 --gid nodejs --shell /bin/bash --create-home nextjs
-
-# Copiar archivos necesarios
+# Copiar archivos necesarios desde la etapa de construcción
+COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
 
-# Crear directorio de datos con permisos correctos
-RUN mkdir -p /app/data && chown -R nextjs:nodejs /app
-
-# Definir volumen
-VOLUME ["/app/data"]
-
-# Cambiar al usuario no root
-USER nextjs
+# Crear directorio de datos
+RUN mkdir -p /app/data
 
 # Exponer el puerto
 EXPOSE 3001
 
 # Comando para iniciar la aplicación
-CMD ["node", "server.js"]
+CMD ["npm", "start"]
