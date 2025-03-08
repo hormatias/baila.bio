@@ -2,16 +2,28 @@ FROM node:16 AS builder
 
 WORKDIR /app
 
-# Copiar todo el código fuente
+# Configurar npm para ser más tolerante a errores
+RUN npm config set fetch-retry-maxtimeout 60000 \
+    && npm config set fetch-retry-mintimeout 15000 \
+    && npm config set fetch-retries 5 \
+    && npm config set loglevel verbose
+
+# Copiar solo los archivos de configuración primero
+COPY package.json ./
+COPY package-lock.json* ./
+
+# Instalar dependencias con --legacy-peer-deps para mayor compatibilidad
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+RUN npm install --legacy-peer-deps --no-optional
+
+# Ahora copiar el resto del código
 COPY . .
 
-# Instalar dependencias y construir
-ENV NODE_OPTIONS="--max-old-space-size=4096"
-RUN npm install
+# Construir la aplicación
 RUN npm run build
 
-# Etapa de producción
-FROM node:16-slim
+# Etapa de producción - usar imagen base más completa para mayor compatibilidad
+FROM node:16
 
 WORKDIR /app
 ENV NODE_ENV production
