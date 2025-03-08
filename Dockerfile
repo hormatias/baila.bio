@@ -12,7 +12,7 @@ COPY package.json package-lock.json* ./
 
 # Instalar dependencias con mayor límite de memoria
 ENV NODE_OPTIONS="--max-old-space-size=4096"
-RUN npm ci --only=production
+RUN npm ci --only=production --legacy-peer-deps
 
 # Configuración de construcción
 FROM base AS builder
