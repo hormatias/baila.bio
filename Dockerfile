@@ -10,9 +10,14 @@ RUN apk add --no-cache libc6-compat python3 make g++ git
 # Copiar archivos de configuración de dependencias
 COPY package.json package-lock.json* ./
 
-# Instalar todas las dependencias (incluyendo devDependencies)
+# Instalar todas las dependencias con estrategias para evitar fallos
 ENV NODE_OPTIONS="--max-old-space-size=8192"
-RUN npm ci
+# Limpiar caché de npm y usar estrategias para evitar fallos de red
+RUN npm cache clean --force && \
+    npm config set network-timeout 300000 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm install --no-fund --no-audit
 
 # Configuración de construcción
 FROM base AS builder
